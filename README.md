@@ -93,26 +93,29 @@ EBAZ4205Linux移植笔记
     
     ![输入图片说明](%E6%8F%92%E5%9B%BE/config.png)
 
-    串口配置
+##### 串口配置
 
     进入 Subsystem AUTO Hardware Settings  --->  选择 Serial Settings  --->  我将UART0作为调试串口，配置如下：
 
     ![输入图片说明](%E6%8F%92%E5%9B%BE/%E4%B8%B2%E5%8F%A3%E9%85%8D%E7%BD%AE.png)
 
-    配置Uboot、kernel为SD卡镜像
+##### 配置Uboot、kernel为SD卡镜像
+    
+    进入 Subsystem AUTO Hardware Settings  ---> 选择  [*]   Advanced bootable images storage Settings  --->   
+
     ![输入图片说明](%E6%8F%92%E5%9B%BE/imagestorage.png)
    
-    配置uboot 
+##### 配置uboot 
 
     进入  u-boot Configuration  --->  此处修改为0x8000000
     ![输入图片说明](%E6%8F%92%E5%9B%BE/ubootconfig.png)
 
-    配置rootfs为SD卡镜像
+##### 配置rootfs为SD卡镜像
 
     进入 Image Packaging Configuration  ---> 
     ![输入图片说明](%E6%8F%92%E5%9B%BE/rootfstype.png)
 
-    配置自动登录
+##### 配置自动登录
 
     进入 Yocto Settings  --->
     ![输入图片说明](%E6%8F%92%E5%9B%BE/%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%95.png)
