@@ -3,6 +3,14 @@
 #### 介绍
 EBAZ4205Linux移植笔记
 
+1. 移植采用petalinux移植linux系统到EBAZ4205
+
+2. 利用framebuffer驱动板子上的LCD显示屏
+
+3. 移植LVGL
+
+4. 移植QT5
+
 #### 板子插图
 
 
