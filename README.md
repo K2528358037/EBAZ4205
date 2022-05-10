@@ -28,16 +28,19 @@ EBAZ4205Linux移植笔记
 ##### 1.外设配置
 
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E5%A4%96%E8%AE%BE%E9%85%8D%E7%BD%AE1.png)
+
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E5%A4%96%E8%AE%BE%E9%85%8D%E7%BD%AE2.png)
 
 ##### 2.IO配置
 
 ![输入图片说明](%E6%8F%92%E5%9B%BE/IO%E9%85%8D%E7%BD%AE1.png)
+
 ![输入图片说明](%E6%8F%92%E5%9B%BE/IO%E9%85%8D%E7%BD%AE2.png)
 
 ##### 3.管脚约束
 
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%AE%A1%E8%84%9A%E7%BA%A6%E6%9D%9F1.png)
+
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%AE%A1%E8%84%9A%E7%BA%A6%E6%9D%9F2.png)
 
 ##### 4.连线
@@ -53,7 +56,9 @@ EBAZ4205Linux移植笔记
 先编译工程，编译完成后导出bit文件
 
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%BC%96%E8%AF%91%E5%AF%BC%E5%87%BAbit.png)
+
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%BC%96%E8%AF%91%E5%AF%BC%E5%87%BAbit2.png)
+
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%BC%96%E8%AF%91%E5%AF%BC%E5%87%BAbit3.png)
 
 #### 参与贡献
