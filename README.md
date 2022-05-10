@@ -123,6 +123,98 @@ EBAZ4205Linux移植笔记
     
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%95.png)
 
+配置完成后，移动光标至`save`按回车进行保存，双击键盘上的`ESC`一步步退出终端，等待工程配置完成
+
+![输入图片说明](%E6%8F%92%E5%9B%BE/%E4%BF%9D%E5%AD%98%E9%80%80%E5%87%BA.png)
+
+##### 修改设备树
+
+打开`project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi`文件添加自己的设备树
+
+我在设备树中添加了两个led灯以及5个按键
+
+```
+/include/ "system-conf.dtsi"
+
+#define GPIO_ACTIVE_HIGH 1
+#define GPIO_ACTIVE_LOW 0
+/ {
+
+	compatible = "EBAZ4205,zynq-7010","xlnx,zynq-7000";
+
+	leds {
+        	compatible = "gpio-leds";
+
+       		led6_Red {
+        		label = "led6_Red";
+                	gpios = <&gpio0 63 0>;
+                	default-state = "on";
+        	};
+
+        	led6_Green {
+                	label = "led6_Green";
+                	gpios = <&gpio0 62 0>;
+                	linux,default-trigger = "cpu";
+        	};
+		
+	};
+	
+	keys {
+		compatible = "gpio-keys-polled";
+		poll-interval = <20>;
+		autorepeat;
+	 
+		S2{
+			label = "S2";
+			gpios = <&gpio0 20 GPIO_ACTIVE_LOW>;
+			linux,code = <111>; // ESC
+		};
+		S3 {
+                	label = "S3";
+                	gpios = <&gpio0 34 GPIO_ACTIVE_LOW>;
+                	linux,code = <158>; // 9
+        	};
+		key_up {
+                	label = "key_up";
+                	gpios = <&gpio0 57 GPIO_ACTIVE_HIGH>;
+                	linux,code = <103>; // up
+        	};
+		key_left {
+               		label = "key_left";
+                	gpios = <&gpio0 58 GPIO_ACTIVE_HIGH>;
+                	linux,code = <105>; // left
+        	};
+		key_ok {
+                	label = "key_ok";
+                	gpios = <&gpio0 59 GPIO_ACTIVE_HIGH>;
+                	linux,code = <28>; // ok
+        	};
+		key_down {
+        	        label = "key_down";
+        	        gpios = <&gpio0 60 GPIO_ACTIVE_HIGH>;
+        	        linux,code = <108>; // down
+        	};
+		key_right {
+        	        label = "key_right";
+        	        gpios = <&gpio0 61 GPIO_ACTIVE_HIGH>;
+        	        linux,code = <106>; // right
+       		};
+	};
+};
+```
+
+##### 编译镜像
+
+1.编译工程 `petalinux-buildls` 
+
+2.合成启动文件 `petalinux-package --boot --fsbl ./images/linux/zynq_fsbl.elf --fpga ../EBAZ4205.sdk/EBAZ4205_wrapper_hw_platform_0/EBAZ4205_wrapper.bit --u-boot ./images/linux/u-boot.elf --force`
+
+3.制作SDK 取一张小于32GB的内存卡，创建两个分区，第一个分区为boot 分区类型为FAT32(大小可为100MB)，剩余空间创建为第二个分区rootfs 分区类型为ext4
+
+4.将 ./images/linux/ 下的BOOT.bin和image.ub这两个文件拷贝到boot分区中，将 ./images/linux/下的rootfs.tar.gz 解压到rootfs分区中，弹出SD卡插入板子的SD卡座上电，通过调试串口可登入linux终端
+
+![输入图片说明](linux%E5%90%AF%E5%8A%A8.png)
+
 #### 特技
 
 
