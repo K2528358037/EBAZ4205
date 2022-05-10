@@ -275,7 +275,7 @@ EBAZ4205Linux移植笔记
 
 创建一个驱动 `petalinux-create -t modules --name st7789vdrv`
 
-执行命令可以在`project-spec/meta-user/recipes-modules/st7789vdrv/files`下创建一个`st7789vdrv.c`文件，里面添加了一个驱动模板，直接将文件中的内容替换为如下内容：
+执行命令可以在`project-spec/meta-user/recipes-modules/st7789vdrv/files`下创建一个`st7789vdrv.c`文件，将文件中的内容替换为如下内容：
 
 ```
 #include <linux/interrupt.h>
