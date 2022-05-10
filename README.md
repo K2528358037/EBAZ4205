@@ -108,17 +108,21 @@ EBAZ4205Linux移植笔记
 ##### 配置uboot 
 
     进入  u-boot Configuration  --->  此处修改为0x8000000
+   
     ![输入图片说明](%E6%8F%92%E5%9B%BE/ubootconfig.png)
 
 ##### 配置rootfs为SD卡镜像
 
     进入 Image Packaging Configuration  ---> 
+    
     ![输入图片说明](%E6%8F%92%E5%9B%BE/rootfstype.png)
 
 ##### 配置自动登录
 
     进入 Yocto Settings  --->
+    
     ![输入图片说明](%E6%8F%92%E5%9B%BE/%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%95.png)
+
 #### 特技
 
 
