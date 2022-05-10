@@ -298,8 +298,6 @@ EBAZ4205Linux移植笔记
 #define LCD_H 240
 #define LCD_W 240
 
-
-int cnt=0;
 struct st7789v_char_dev{
     	const char *       	name;
 	int 		   	major;
@@ -314,7 +312,7 @@ struct st7789v_char_dev{
 };
 static struct timer_list tm;
 struct timeval oldtv;
-//static int count=0;
+
 /* 声明设备结构体 */
 static struct st7789v_char_dev st7789v_dev = {
     .name = "st7789v",
@@ -324,77 +322,19 @@ static unsigned int pseudo_palette[16];
 
 static struct fb_info *oled_fb_info;
 unsigned short GRAM[240*240]={0};
-void callback(unsigned long arg)
-{
-    struct timeval tv;
-    char *strp = (char*)arg;
-    /*
-    printk("%s: %lu, %s\n", __func__, jiffies, strp);
 
-    do_gettimeofday(&tv);
-    printk("%s: %ld, %ld\n", __func__,
-        tv.tv_sec - oldtv.tv_sec,        //与上次中断间隔 s
-        tv.tv_usec- oldtv.tv_usec);        //与上次中断间隔 ms
-    */
-   // do_gettimeofday(&tv);
-	printk("%ld \r\n",cnt);
-    //oldtv = tv;
-    tm.expires = jiffies+1*HZ;    
-    add_timer(&tm);        //重新开始计时
-}
-
-static int demo_init(void)
-{
-    printk(KERN_INFO "%s : %s : %d - ok.\n", __FILE__, __func__, __LINE__);
-
-    init_timer(&tm);    //初始化内核定时器
-
-    do_gettimeofday(&oldtv);        //获取当前时间
-    tm.function= callback;            //指定定时时间到后的回调函数
-    tm.data    = (unsigned long)"hello world";        //回调函数的参数
-    tm.expires = jiffies+1*HZ;        //定时时间
-    add_timer(&tm);        //注册定时器
-
-    return 0;
-}
-/**********************************************************************
-	 * 函数名称： oled_write_cmd
-	 * 功能描述： oled向特定地址写入数据或者命令
-	 * 输入参数：@uc_data :要写入的数据
-	 			@uc_cmd:为1则表示写入数据，为0表示写入命令
-	 * 输出参数：无
-	 * 返 回 值： 无
-	 * 修改日期 	   版本号	 修改人		  修改内容
-	 * -----------------------------------------------
-	 * 2020/03/04		 V1.0	  芯晓		  创建
- ***********************************************************************/
 static void lcd_write_cmd_data(unsigned char uc_data,unsigned char uc_cmd)
 {
-	//struct spi_message msg;
-	//struct spi_transfer trans;
-	//unsigned char rec;
 	if(uc_cmd==0)
 	{
-		//*GPIO4_DR_s &= ~(1<<20);//拉低，表示写入指令
-		gpio_set_value(st7789v_dev.lcd_dc, !!0);//gpiod_set_value(oled_dc, 0);
+		gpio_set_value(st7789v_dev.lcd_dc, !!0);
 	}
 	else
 	{
-		//*GPIO4_DR_s |= (1<<20);//拉高，表示写入数据
 		gpio_set_value(st7789v_dev.lcd_dc, 1);
 	}
-	// spi_writeread(ESCPI1_BASE,uc_data);//写入
-	
-	//trans.tx_buf = &uc_data;
-	//trans.len    = 1;
-	//spi_message_init(&msg);
-	//spi_message_add_tail(&trans[0], &msg);
-	//spi_message_add_tail(&trans[1], &msg);
-	//spi_message_add_tail(&trans, &msg);
-	//spi_sync(st7789v_dev.spidevice, &msg);
 	spi_write(st7789v_dev.spidevice, &uc_data, 1);
 	gpio_set_value(st7789v_dev.lcd_dc, 1);
-	//
 }
 
 static void lcd_write_datas(unsigned char *buf, int len)
@@ -414,7 +354,7 @@ void LCD_WR_DATA8(unsigned char uc_data)
 
  void LCD_WR_DATA(u16 dat)
 {
-	u8 spi_dat[2];
+    u8 spi_dat[2];
     spi_dat[0]=dat>>8;
     spi_dat[1]=dat;
 	
@@ -514,35 +454,6 @@ void Lcd_Init(void)
 	gpio_set_value(st7789v_dev.lcd_bl, 1);//XGpioPs_WritePin(&Gpio, EMIO_LCD_BL, 1);
 }
 
-void LCD_Test(void)
-{
-/*    unsigned int i,j;
-    Address_set(0,0,240-1,240-1);
-
-    for(i=0;i<240;i++){
-    		for (j=0;j<240;j++)LCD_WR_DATA(WHITE);
-    }
-
-	Address_set(0,0,240-1,240-1);
-
-    for(i=0;i<240;i++){
-    		for (j=0;j<240;j++)LCD_WR_DATA(BLUE);
-    }
-*/
-}
-
-
-/**********************************************************************
-	 * 函数名称： oled_init
-	 * 功能描述： oled_init的初始化，包括SPI控制器得初始化
-	 * 输入参数：无
-	 * 输出参数： 初始化的结果
-	 * 返 回 值： 成功则返回0，否则返回-1
-	 * 修改日期 	   版本号	 修改人		  修改内容
-	 * -----------------------------------------------
-	 * 2020/03/15		 V1.0	  芯晓		  创建
- ***********************************************************************/
-
 static int request_one_gpio(struct device_node *node,char *name,int index)
 {
 	//int of_get_named_gpio(struct device_node *np, const char *propname, int index);
@@ -577,16 +488,7 @@ static int request_one_gpio(struct device_node *node,char *name,int index)
 
 static long st7789v_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	//struct spi_message msg;
-	//struct spi_transfer trans[3];
-	
-	//spi_message_init(&msg);
-	//spi_message_add_tail(&trans[0], &msg);
-	//spi_message_add_tail(&trans[1], &msg);
-	//spi_message_add_tail(&trans[2], &msg);
-	//count++;
-	//spi_write(oled_dev, &uc_data, 1);
-	//gpio_set_value(st7789v_dev.lcd_bl, !!(count%2));
+
 	return 0;
 }
 
@@ -598,7 +500,6 @@ static struct file_operations st7789v_fops = {
 
 void myfb_del(void) //此函数在spi设备驱动remove时被调用
 {
-    //lcd_data_t *data = fbi->par;static struct task_struct *lcd_kthread;
     kthread_stop(lcd_kthread); //让刷图线程退出
     unregister_framebuffer(oled_fb_info);
     dma_free_coherent(NULL, oled_fb_info->screen_size, oled_fb_info->screen_base, oled_fb_info->fix.smem_start);
@@ -639,7 +540,6 @@ void show_fb(struct fb_info *fbi)
     unsigned short c;
     unsigned char *pp;
     unsigned short *memory = GRAM;
-   // memory = kzalloc(240*2*240, GFP_KERNEL);	/* 申请内存 */
     Address_set(0,0,LCD_W-1,LCD_H-1);
     for (y = 0; y < fbi->var.yres; y++)
     {
@@ -656,7 +556,6 @@ void show_fb(struct fb_info *fbi)
         }
     }
 	spi_write(st7789v_dev.spidevice,memory,115200);
-   // kfree(memory);
 }
 static int lcd_thread(void *data)
 {
@@ -669,10 +568,10 @@ static int lcd_thread(void *data)
 		set_current_state(TASK_INTERRUPTIBLE);
 		schedule_timeout(HZ/100);
 
-		//if (kthread_should_stop()) {
-		//	set_current_state(TASK_RUNNING);
-		//	break;
-		//}
+		if (kthread_should_stop()) {
+			set_current_state(TASK_RUNNING);
+			break;
+		}
 	}
 	return 0;	
 }
@@ -685,9 +584,7 @@ static struct fb_ops myfb_ops = {
 };
 static int fb_init(struct spi_device *spi)
 {	
-		u32  phy_addr;
-	
-	printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
+	u32  phy_addr;
 
 	/* 分配/设置/注册 fb_info */
 	oled_fb_info = framebuffer_alloc(0, &spi->dev);
@@ -699,22 +596,13 @@ static int fb_init(struct spi_device *spi)
 	oled_fb_info->var.yres_virtual = oled_fb_info->var.yres = 240;
 	
 	oled_fb_info->var.bits_per_pixel = 32;  /* rgb565 */
-/*	oled_fb_info->var.red.offset = 11;
-	oled_fb_info->var.red.length = 5;
-
-	oled_fb_info->var.green.offset = 5;
-	oled_fb_info->var.green.length = 6;
-
-	oled_fb_info->var.blue.offset = 0;
-	oled_fb_info->var.blue.length = 5;
-*/
 	oled_fb_info->var.red.offset = 16;
-    oled_fb_info->var.red.length = 8;
-    oled_fb_info->var.green.offset = 8;
-    oled_fb_info->var.green.length = 8;
-    oled_fb_info->var.blue.offset = 0;
-    oled_fb_info->var.blue.length = 8;
-
+        oled_fb_info->var.red.length = 8;
+        oled_fb_info->var.green.offset = 8;
+        oled_fb_info->var.green.length = 8;
+        oled_fb_info->var.blue.offset = 0;
+        oled_fb_info->var.blue.length = 8;
+    
 	/* b. fix */
 	strcpy(oled_fb_info->fix.id, "darkmoon_lcd");
 	oled_fb_info->fix.smem_len = oled_fb_info->var.xres * oled_fb_info->var.yres * oled_fb_info->var.bits_per_pixel / 8;
@@ -724,8 +612,6 @@ static int fb_init(struct spi_device *spi)
 					 GFP_KERNEL);
 	oled_fb_info->fix.smem_start = phy_addr;  /* fb的物理地址 */
 	oled_fb_info->screen_size = oled_fb_info->fix.smem_len;
-//	void *kmalloc(oled_fb_info->fix.smem_len, GFP_ATOMIC )；
-//	void *kmalloc(size_t size, gfp_t flags)；
 
 	oled_fb_info->fix.type = FB_TYPE_PACKED_PIXELS;
 	oled_fb_info->fix.visual = FB_VISUAL_TRUECOLOR;
@@ -757,10 +643,8 @@ static int st7789v_probe(struct spi_device *spi)
 		printk("alinx_char node find\r\n");
 	}
 
-	//of_get_named_gpio(st7789v_dev.nd,"spi-max-frequency",0);
-
 	spi->mode = SPI_MODE_2;	/*MODE0，CPOL=0，CPHA=0 */
-	spi->max_speed_hz = 100000000;//of_get_named_gpio(st7789v_dev.nd,"spi-max-frequency",0); 
+	spi->max_speed_hz = of_get_named_gpio(st7789v_dev.nd,"spi-max-frequency",0); 
 	spi_setup(spi); 
 
 	st7789v_dev.lcd_bl=request_one_gpio(st7789v_dev.nd,"lcd-bl",0);
@@ -776,11 +660,9 @@ static int st7789v_probe(struct spi_device *spi)
 	device_create(st7789v_dev.class, NULL, MKDEV(st7789v_dev.major, 0), NULL,st7789v_dev.name);
 
 	fb_init(spi);
-	msleep(100);
+	msleep(10);
 	Lcd_Init();
-	//msleep(1000);
 	LCD_Test();
-	//demo_init();
 	lcd_kthread = kthread_create(lcd_thread, NULL, "darkmoon_lcd");
 	wake_up_process(lcd_kthread);
 	return 0;
@@ -788,10 +670,7 @@ static int st7789v_probe(struct spi_device *spi)
 
 static int st7789v_remove(struct spi_device *spi)
 {
-	printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
 	myfb_del();
-	//del_timer(&tm); 
-	
 	device_destroy(st7789v_dev.class, MKDEV(st7789v_dev.major, 0));
 	class_destroy(st7789v_dev.class);
 	unregister_chrdev(st7789v_dev.major, st7789v_dev.name);
@@ -811,7 +690,6 @@ static struct spi_driver st7789v_driver = {
 	},
 	.probe		= st7789v_probe,
 	.remove		= st7789v_remove,
-	//.id_table	= st7789v_spi_ids,
 };
 
 int st7789v_init(void)
@@ -885,7 +763,6 @@ MODULE_LICENSE("GPL v2");
 				 lcd-bl = <&gpio0 54 0>;
 				 lcd-dc = <&gpio0 55 0>;
 				 lcd-res = <&gpio0 56 0>;
-				 debug=<7>;
 	 		};
 		};
 
