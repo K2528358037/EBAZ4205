@@ -131,7 +131,7 @@ EBAZ4205Linux移植笔记
 
 打开`project-spec/meta-user/recipes-bsp/device-tree/files/system-user.dtsi`文件添加自己的设备树
 
-我在设备树中添加了两个led灯以及5个按键
+我在设备树中添加了两个led灯、5个按键以及LCD显示屏的描述（LCD的驱动在后续章节进行添加）
 
 ```
 /include/ "system-conf.dtsi"
@@ -200,7 +200,63 @@ EBAZ4205Linux移植笔记
         	        linux,code = <106>; // right
        		};
 	};
+
+	amba: amba {
+		u-boot,dm-pre-reloc;
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		interrupt-parent = <&intc>;
+		ranges;
+		
+	slcr@f8000000 {
+		pinctrl@700 {
+				pinctrl_led_default: led-default {
+					mux {
+						groups = "gpio0_0_grp";
+						function = "gpio0";
+					};
+
+					conf {
+						pins = "MIO0";
+						io-standard = <1>;
+						bias-disable;
+						slew-rate = <0>;
+					};
+				};
+			};
+		};
+
+	 spi0: spi@e0006000 {
+			compatible = "xlnx,zynq-spi-r1p6";
+			reg = <0xe0006000 0x1000>;
+			status = "okay";
+			interrupt-parent = <&intc>;
+			interrupts = <0 26 4>;
+			clocks = <&clkc 25>, <&clkc 34>;
+			clock-names = "ref_clk", "pclk";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			is-decoded-cs = <0x0>;
+			num-cs = <0x1>;
+			st7789v@0{
+				 compatible = "darkmoon,st7789v";
+				 reg = <0>;
+				 status = "okay";
+				 spi-max-frequency = <100000000>;
+				 pinctrl-names = "default";
+				 pinctrl-0 = <&pinctrl_led_default>;
+				 lcd-bl = <&gpio0 54 0>;
+				 lcd-dc = <&gpio0 55 0>;
+				 lcd-res = <&gpio0 56 0>;
+				 debug=<7>;
+	 		};
+		};
+
+	};
+	
 };
+
 ```
 
 ##### 编译镜像
@@ -215,6 +271,625 @@ EBAZ4205Linux移植笔记
 
 ![输入图片说明](linux%E5%90%AF%E5%8A%A8.png)
 
-#### 特技
+#### 利用FrameBuffer驱动LCD屏幕
+
+创建一个驱动 `petalinux-create -t modules --name st7789vdrv`
+
+执行命令可以在`project-spec/meta-user/recipes-modules/st7789vdrv/files`下创建一个`st7789vdrv.c`文件，里面添加了一个驱动模板，直接将文件中的内容替换为如下内容：
+
+```
+#include <linux/interrupt.h>
+#include <linux/workqueue.h>
+#include <linux/device.h>
+#include <linux/kernel.h>
+#include <linux/slab.h>
+#include <linux/sysfs.h>
+#include <linux/list.h>
+#include <linux/spi/spi.h>
+#include <linux/err.h>
+#include <linux/module.h>
+#include <linux/of_gpio.h>
+#include <linux/delay.h>
+#include <linux/fb.h>
+#include <linux/dma-mapping.h>
+#include <linux/time.h>
+#include <linux/timer.h>
+
+#define LCD_H 240
+#define LCD_W 240
+
+
+int cnt=0;
+struct st7789v_char_dev{
+    	const char *       	name;
+	int 		   	major;
+	struct class       	*class;            //类
+	struct device_node 	*nd;               //设备树的设备节点
+	struct spi_device  	*spidevice;
+	struct spi_driver  	*spidriver;
+	struct file_operations 	*fops;
+	int                	lcd_bl;    //gpio号
+	int                	lcd_dc;    //gpio号
+	int                	lcd_res;    //gpio号
+};
+static struct timer_list tm;
+struct timeval oldtv;
+//static int count=0;
+/* 声明设备结构体 */
+static struct st7789v_char_dev st7789v_dev = {
+    .name = "st7789v",
+};
+static struct task_struct *lcd_kthread;
+static unsigned int pseudo_palette[16];
+
+static struct fb_info *oled_fb_info;
+unsigned short GRAM[240*240]={0};
+void callback(unsigned long arg)
+{
+    struct timeval tv;
+    char *strp = (char*)arg;
+    /*
+    printk("%s: %lu, %s\n", __func__, jiffies, strp);
+
+    do_gettimeofday(&tv);
+    printk("%s: %ld, %ld\n", __func__,
+        tv.tv_sec - oldtv.tv_sec,        //与上次中断间隔 s
+        tv.tv_usec- oldtv.tv_usec);        //与上次中断间隔 ms
+    */
+   // do_gettimeofday(&tv);
+	printk("%ld \r\n",cnt);
+    //oldtv = tv;
+    tm.expires = jiffies+1*HZ;    
+    add_timer(&tm);        //重新开始计时
+}
+
+static int demo_init(void)
+{
+    printk(KERN_INFO "%s : %s : %d - ok.\n", __FILE__, __func__, __LINE__);
+
+    init_timer(&tm);    //初始化内核定时器
+
+    do_gettimeofday(&oldtv);        //获取当前时间
+    tm.function= callback;            //指定定时时间到后的回调函数
+    tm.data    = (unsigned long)"hello world";        //回调函数的参数
+    tm.expires = jiffies+1*HZ;        //定时时间
+    add_timer(&tm);        //注册定时器
+
+    return 0;
+}
+/**********************************************************************
+	 * 函数名称： oled_write_cmd
+	 * 功能描述： oled向特定地址写入数据或者命令
+	 * 输入参数：@uc_data :要写入的数据
+	 			@uc_cmd:为1则表示写入数据，为0表示写入命令
+	 * 输出参数：无
+	 * 返 回 值： 无
+	 * 修改日期 	   版本号	 修改人		  修改内容
+	 * -----------------------------------------------
+	 * 2020/03/04		 V1.0	  芯晓		  创建
+ ***********************************************************************/
+static void lcd_write_cmd_data(unsigned char uc_data,unsigned char uc_cmd)
+{
+	//struct spi_message msg;
+	//struct spi_transfer trans;
+	//unsigned char rec;
+	if(uc_cmd==0)
+	{
+		//*GPIO4_DR_s &= ~(1<<20);//拉低，表示写入指令
+		gpio_set_value(st7789v_dev.lcd_dc, !!0);//gpiod_set_value(oled_dc, 0);
+	}
+	else
+	{
+		//*GPIO4_DR_s |= (1<<20);//拉高，表示写入数据
+		gpio_set_value(st7789v_dev.lcd_dc, 1);
+	}
+	// spi_writeread(ESCPI1_BASE,uc_data);//写入
+	
+	//trans.tx_buf = &uc_data;
+	//trans.len    = 1;
+	//spi_message_init(&msg);
+	//spi_message_add_tail(&trans[0], &msg);
+	//spi_message_add_tail(&trans[1], &msg);
+	//spi_message_add_tail(&trans, &msg);
+	//spi_sync(st7789v_dev.spidevice, &msg);
+	spi_write(st7789v_dev.spidevice, &uc_data, 1);
+	gpio_set_value(st7789v_dev.lcd_dc, 1);
+	//
+}
+
+static void lcd_write_datas(unsigned char *buf, int len)
+{
+	spi_write(st7789v_dev.spidevice, buf, len);
+}
+
+void LCD_WR_REG(unsigned char uc_data)
+{
+	lcd_write_cmd_data(uc_data,0);
+}
+
+void LCD_WR_DATA8(unsigned char uc_data)
+{
+	lcd_write_cmd_data(uc_data,1);
+}
+
+ void LCD_WR_DATA(u16 dat)
+{
+	u8 spi_dat[2];
+    spi_dat[0]=dat>>8;
+    spi_dat[1]=dat;
+	
+    lcd_write_datas(spi_dat,2);
+}
+/*
+void set_pont(unsigned int x,unsigned int y,unsigned short data)
+{
+	unsigned char *p=(unsigned char *)&data;
+	GRAM[x][y] = (unsigned short)(p[0]<<8)|(p[1]);
+	
+}
+*/
+void Address_set(unsigned int x1,unsigned int y1,unsigned int x2,unsigned int y2)
+{
+   LCD_WR_REG(0x2a);
+   LCD_WR_DATA8(x1>>8);
+   LCD_WR_DATA8(x1);
+   LCD_WR_DATA8(x2>>8);
+   LCD_WR_DATA8(x2);
+   LCD_WR_REG(0x2b);
+   LCD_WR_DATA8(y1>>8);
+   LCD_WR_DATA8(y1);
+   LCD_WR_DATA8(y2>>8);
+   LCD_WR_DATA8(y2);
+   LCD_WR_REG(0x2C);
+}
+
+void Lcd_Init(void)
+{
+	gpio_set_value(st7789v_dev.lcd_bl, 0);//XGpioPs_WritePin(&Gpio, EMIO_LCD_BL, 0);
+	gpio_set_value(st7789v_dev.lcd_bl, 0);//XGpioPs_WritePin(&Gpio, EMIO_LCD_BL, 0);
+	gpio_set_value(st7789v_dev.lcd_res, 0);//XGpioPs_WritePin(&Gpio, EMIO_LCD_RES, 0);
+	msleep(10);//delay();
+	gpio_set_value(st7789v_dev.lcd_res, 1);//XGpioPs_WritePin(&Gpio, EMIO_LCD_RES, 1);
+	msleep(10);//delay();
+	LCD_WR_REG(0x36);
+	LCD_WR_DATA8(0x00);
+	LCD_WR_REG(0x3A);
+	LCD_WR_DATA8(0x05);
+	LCD_WR_REG(0xB2);
+	LCD_WR_DATA8(0x0C);
+	LCD_WR_DATA8(0x0C);
+	LCD_WR_DATA8(0x00);
+	LCD_WR_DATA8(0x33);
+	LCD_WR_DATA8(0x33);
+	LCD_WR_REG(0xB7);
+	LCD_WR_DATA8(0x35);
+	LCD_WR_REG(0xBB);
+	LCD_WR_DATA8(0x19);
+	LCD_WR_REG(0xC0);
+	LCD_WR_DATA8(0x2C);
+	LCD_WR_REG(0xC2);
+	LCD_WR_DATA8(0x01);
+	LCD_WR_REG(0xC3);
+	LCD_WR_DATA8(0x12);
+	LCD_WR_REG(0xC4);
+	LCD_WR_DATA8(0x20);
+	LCD_WR_REG(0xC6);
+	LCD_WR_DATA8(0x0F);
+	LCD_WR_REG(0xD0);
+	LCD_WR_DATA8(0xA4);
+	LCD_WR_DATA8(0xA1);
+	LCD_WR_REG(0xE0);
+	LCD_WR_DATA8(0xD0);
+	LCD_WR_DATA8(0x04);
+	LCD_WR_DATA8(0x0D);
+	LCD_WR_DATA8(0x11);
+	LCD_WR_DATA8(0x13);
+	LCD_WR_DATA8(0x2B);
+	LCD_WR_DATA8(0x3F);
+	LCD_WR_DATA8(0x54);
+	LCD_WR_DATA8(0x4C);
+	LCD_WR_DATA8(0x18);
+	LCD_WR_DATA8(0x0D);
+	LCD_WR_DATA8(0x0B);
+	LCD_WR_DATA8(0x1F);
+	LCD_WR_DATA8(0x23);
+	LCD_WR_REG(0xE1);
+	LCD_WR_DATA8(0xD0);
+	LCD_WR_DATA8(0x04);
+	LCD_WR_DATA8(0x0C);
+	LCD_WR_DATA8(0x11);
+	LCD_WR_DATA8(0x13);
+	LCD_WR_DATA8(0x2C);
+	LCD_WR_DATA8(0x3F);
+	LCD_WR_DATA8(0x44);
+	LCD_WR_DATA8(0x51);
+	LCD_WR_DATA8(0x2F);
+	LCD_WR_DATA8(0x1F);
+	LCD_WR_DATA8(0x1F);
+	LCD_WR_DATA8(0x20);
+	LCD_WR_DATA8(0x23);
+	LCD_WR_REG(0x21);
+	LCD_WR_REG(0x11);
+	LCD_WR_REG(0x29);
+	gpio_set_value(st7789v_dev.lcd_bl, 1);//XGpioPs_WritePin(&Gpio, EMIO_LCD_BL, 1);
+}
+
+void LCD_Test(void)
+{
+/*    unsigned int i,j;
+    Address_set(0,0,240-1,240-1);
+
+    for(i=0;i<240;i++){
+    		for (j=0;j<240;j++)LCD_WR_DATA(WHITE);
+    }
+
+	Address_set(0,0,240-1,240-1);
+
+    for(i=0;i<240;i++){
+    		for (j=0;j<240;j++)LCD_WR_DATA(BLUE);
+    }
+*/
+}
+
+
+/**********************************************************************
+	 * 函数名称： oled_init
+	 * 功能描述： oled_init的初始化，包括SPI控制器得初始化
+	 * 输入参数：无
+	 * 输出参数： 初始化的结果
+	 * 返 回 值： 成功则返回0，否则返回-1
+	 * 修改日期 	   版本号	 修改人		  修改内容
+	 * -----------------------------------------------
+	 * 2020/03/15		 V1.0	  芯晓		  创建
+ ***********************************************************************/
+
+static int request_one_gpio(struct device_node *node,char *name,int index)
+{
+	//int of_get_named_gpio(struct device_node *np, const char *propname, int index);
+	/* 获取节点中gpio标号 */
+	int gpio,ret;
+	gpio = of_get_named_gpio(node,name,index);
+	if(gpio < 0)
+	{
+		printk("can not get %s",name);
+		return -EINVAL;
+	}
+	else
+	{
+		printk("%s num = %d\r\n",name,gpio);
+	
+		/* 申请gpio标号对应的引脚 */
+		ret = gpio_request(gpio, name);
+		if(ret != 0)
+		{
+			printk("can not request %s\r\n",name);
+		}
+	
+		/* 把这个io设置为输出 */
+		ret = gpio_direction_output(gpio, 1);
+		if(ret < 0)
+		{
+			printk("can not set %s\r\n",name);
+		}
+	}
+	return gpio;
+}  
+
+static long st7789v_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	//struct spi_message msg;
+	//struct spi_transfer trans[3];
+	
+	//spi_message_init(&msg);
+	//spi_message_add_tail(&trans[0], &msg);
+	//spi_message_add_tail(&trans[1], &msg);
+	//spi_message_add_tail(&trans[2], &msg);
+	//count++;
+	//spi_write(oled_dev, &uc_data, 1);
+	//gpio_set_value(st7789v_dev.lcd_bl, !!(count%2));
+	return 0;
+}
+
+/* 定义自己的file_operations结构体                                              */
+static struct file_operations st7789v_fops = {
+	.owner	 = THIS_MODULE,
+	.unlocked_ioctl = st7789v_ioctl,
+};
+
+void myfb_del(void) //此函数在spi设备驱动remove时被调用
+{
+    //lcd_data_t *data = fbi->par;static struct task_struct *lcd_kthread;
+    kthread_stop(lcd_kthread); //让刷图线程退出
+    unregister_framebuffer(oled_fb_info);
+    dma_free_coherent(NULL, oled_fb_info->screen_size, oled_fb_info->screen_base, oled_fb_info->fix.smem_start);
+    framebuffer_release(oled_fb_info);
+}
+static inline unsigned int chan_to_field(unsigned int chan, struct fb_bitfield *bf)
+{
+	chan &= 0xffff;
+	chan >>= 16 - bf->length;
+	return chan << bf->offset;
+}
+
+static int tft_lcdfb_setcolreg(unsigned int regno, unsigned int red,
+			     unsigned int green, unsigned int blue,
+			     unsigned int transp, struct fb_info *info)
+{
+	unsigned int val;
+	
+	if (regno > 16)
+	{
+		return 1;
+	}
+
+	/* 用red,green,blue三原色构造出val  */
+	val  = chan_to_field(red,	&info->var.red);
+	val |= chan_to_field(green, &info->var.green);
+	val |= chan_to_field(blue,	&info->var.blue);
+	
+	pseudo_palette[regno] = val;
+	return 0;
+}
+
+void show_fb(struct fb_info *fbi)
+{
+    int x, y;
+    unsigned int k;
+    unsigned int *p = (unsigned int *)(fbi->screen_base);
+    unsigned short c;
+    unsigned char *pp;
+    unsigned short *memory = GRAM;
+   // memory = kzalloc(240*2*240, GFP_KERNEL);	/* 申请内存 */
+    Address_set(0,0,LCD_W-1,LCD_H-1);
+    for (y = 0; y < fbi->var.yres; y++)
+    {
+        for (x = 0; x < fbi->var.xres; x++)
+        {
+            k = p[y*fbi->var.xres+x];//取出一个像素点的32位数据
+            // rgb8888 --> rgb565       
+            pp = (unsigned char *)&k;
+            c = pp[0] >> 3; //蓝色
+            c |= (pp[1]>>2)<<5; //绿色
+            c |= (pp[2]>>3)<<11; //红色
+            //发出像素数据的rgb565
+            *((unsigned short *)memory+y*fbi->var.yres+x) = ((c&0xff)<<8)|((c&0xff00)>>8);
+        }
+    }
+	spi_write(st7789v_dev.spidevice,memory,115200);
+   // kfree(memory);
+}
+static int lcd_thread(void *data)
+{
+/*	unsigned char i,j,cnt=0;
+	unsigned short temp[2]={WHITE,BLUE};*/
+	while (1)
+	{
+		/* 把Framebuffer的数据刷到OLED上去 */
+		show_fb(oled_fb_info);cnt++;
+		set_current_state(TASK_INTERRUPTIBLE);
+		schedule_timeout(HZ/100);
+
+		//if (kthread_should_stop()) {
+		//	set_current_state(TASK_RUNNING);
+		//	break;
+		//}
+	}
+	return 0;	
+}
+static struct fb_ops myfb_ops = {
+	.owner		= THIS_MODULE,
+	.fb_setcolreg	= tft_lcdfb_setcolreg,
+	.fb_fillrect	= cfb_fillrect,
+	.fb_copyarea	= cfb_copyarea,
+	.fb_imageblit	= cfb_imageblit,
+};
+static int fb_init(struct spi_device *spi)
+{	
+		u32  phy_addr;
+	
+	printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
+
+	/* 分配/设置/注册 fb_info */
+	oled_fb_info = framebuffer_alloc(0, &spi->dev);
+
+
+	/* 1.2 设置fb_info */
+	/* a. var : LCD分辨率、颜色格式 */
+	oled_fb_info->var.xres_virtual = oled_fb_info->var.xres = 240;
+	oled_fb_info->var.yres_virtual = oled_fb_info->var.yres = 240;
+	
+	oled_fb_info->var.bits_per_pixel = 32;  /* rgb565 */
+/*	oled_fb_info->var.red.offset = 11;
+	oled_fb_info->var.red.length = 5;
+
+	oled_fb_info->var.green.offset = 5;
+	oled_fb_info->var.green.length = 6;
+
+	oled_fb_info->var.blue.offset = 0;
+	oled_fb_info->var.blue.length = 5;
+*/
+	oled_fb_info->var.red.offset = 16;
+    oled_fb_info->var.red.length = 8;
+    oled_fb_info->var.green.offset = 8;
+    oled_fb_info->var.green.length = 8;
+    oled_fb_info->var.blue.offset = 0;
+    oled_fb_info->var.blue.length = 8;
+
+	/* b. fix */
+	strcpy(oled_fb_info->fix.id, "darkmoon_lcd");
+	oled_fb_info->fix.smem_len = oled_fb_info->var.xres * oled_fb_info->var.yres * oled_fb_info->var.bits_per_pixel / 8;
+	
+	/* c. 分配显存 */
+	oled_fb_info->screen_base = dma_alloc_wc(NULL, oled_fb_info->fix.smem_len, &phy_addr,
+					 GFP_KERNEL);
+	oled_fb_info->fix.smem_start = phy_addr;  /* fb的物理地址 */
+	oled_fb_info->screen_size = oled_fb_info->fix.smem_len;
+//	void *kmalloc(oled_fb_info->fix.smem_len, GFP_ATOMIC )；
+//	void *kmalloc(size_t size, gfp_t flags)；
+
+	oled_fb_info->fix.type = FB_TYPE_PACKED_PIXELS;
+	oled_fb_info->fix.visual = FB_VISUAL_TRUECOLOR;
+
+	oled_fb_info->fix.line_length = oled_fb_info->var.xres * oled_fb_info->var.bits_per_pixel / 8;
+
+	/* d. fbops */
+	oled_fb_info->fbops = &myfb_ops;
+	oled_fb_info->pseudo_palette = pseudo_palette;	
+
+	register_framebuffer(oled_fb_info);
+
+	return 0;
+}
+static int st7789v_probe(struct spi_device *spi)
+{	
+	printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
+	
+	st7789v_dev.spidevice = spi;
+	
+	st7789v_dev.nd = of_find_node_by_path("/amba/spi@e0006000/st7789v@0");
+	if(st7789v_dev.nd == NULL)
+	{
+		printk("alinx_char node not find\r\n");
+		return -EINVAL;
+	}
+	else
+	{
+		printk("alinx_char node find\r\n");
+	}
+
+	//of_get_named_gpio(st7789v_dev.nd,"spi-max-frequency",0);
+
+	spi->mode = SPI_MODE_2;	/*MODE0，CPOL=0，CPHA=0 */
+	spi->max_speed_hz = 100000000;//of_get_named_gpio(st7789v_dev.nd,"spi-max-frequency",0); 
+	spi_setup(spi); 
+
+	st7789v_dev.lcd_bl=request_one_gpio(st7789v_dev.nd,"lcd-bl",0);
+	st7789v_dev.lcd_dc=request_one_gpio(st7789v_dev.nd,"lcd-dc",0);
+	st7789v_dev.lcd_res=request_one_gpio(st7789v_dev.nd,"lcd-res",0);
+	/* register_chrdev */
+	st7789v_dev.major = register_chrdev(0, st7789v_dev.name , st7789v_dev.fops);  
+
+	/* class_create */
+	st7789v_dev.class = class_create(THIS_MODULE, st7789v_dev.name);
+
+	/* device_create */
+	device_create(st7789v_dev.class, NULL, MKDEV(st7789v_dev.major, 0), NULL,st7789v_dev.name);
+
+	fb_init(spi);
+	msleep(100);
+	Lcd_Init();
+	//msleep(1000);
+	LCD_Test();
+	//demo_init();
+	lcd_kthread = kthread_create(lcd_thread, NULL, "darkmoon_lcd");
+	wake_up_process(lcd_kthread);
+	return 0;
+}
+
+static int st7789v_remove(struct spi_device *spi)
+{
+	printk("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__);
+	myfb_del();
+	//del_timer(&tm); 
+	
+	device_destroy(st7789v_dev.class, MKDEV(st7789v_dev.major, 0));
+	class_destroy(st7789v_dev.class);
+	unregister_chrdev(st7789v_dev.major, st7789v_dev.name);
+
+	return 0;
+}
+
+static const struct of_device_id st7789v_of_match[] = {
+	{.compatible = "darkmoon,st7789v"},
+	{}
+};
+
+static struct spi_driver st7789v_driver = {
+	.driver = {
+		.name	= "st7789v",
+		.of_match_table = st7789v_of_match,
+	},
+	.probe		= st7789v_probe,
+	.remove		= st7789v_remove,
+	//.id_table	= st7789v_spi_ids,
+};
+
+int st7789v_init(void)
+{
+	st7789v_dev.spidriver=&st7789v_driver;
+	st7789v_dev.fops=&st7789v_fops;
+	return spi_register_driver(st7789v_dev.spidriver);
+}
+
+static void st7789v_exit(void)
+{
+	spi_unregister_driver(st7789v_dev.spidriver);
+}
+
+module_init(st7789v_init);
+module_exit(st7789v_exit);
+
+MODULE_LICENSE("GPL v2");
+
+```
+在设备树`system-user.dtsi`文件中添加相关驱动，
+
+
+
+```
+	amba: amba {
+		u-boot,dm-pre-reloc;
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		interrupt-parent = <&intc>;
+		ranges;
+		
+	slcr@f8000000 {
+		pinctrl@700 {
+				pinctrl_led_default: led-default {
+					mux {
+						groups = "gpio0_0_grp";
+						function = "gpio0";
+					};
+
+					conf {
+						pins = "MIO0";
+						io-standard = <1>;
+						bias-disable;
+						slew-rate = <0>;
+					};
+				};
+			};
+		};
+
+	 spi0: spi@e0006000 {
+			compatible = "xlnx,zynq-spi-r1p6";
+			reg = <0xe0006000 0x1000>;
+			status = "okay";
+			interrupt-parent = <&intc>;
+			interrupts = <0 26 4>;
+			clocks = <&clkc 25>, <&clkc 34>;
+			clock-names = "ref_clk", "pclk";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			is-decoded-cs = <0x0>;
+			num-cs = <0x1>;
+			st7789v@0{
+				 compatible = "darkmoon,st7789v";
+				 reg = <0>;
+				 status = "okay";
+				 spi-max-frequency = <100000000>;
+				 pinctrl-names = "default";
+				 pinctrl-0 = <&pinctrl_led_default>;
+				 lcd-bl = <&gpio0 54 0>;
+				 lcd-dc = <&gpio0 55 0>;
+				 lcd-res = <&gpio0 56 0>;
+				 debug=<7>;
+	 		};
+		};
+
+	};
+```
 
 
