@@ -73,8 +73,14 @@ EBAZ4205Linux移植笔记
 #### 移植linux
 采用Ubuntu16安装的Petalinux2018.3，移植过程主要参考了正点原子的教程
 
-
-
+1. 打开Linux终端，运行安装目录下的 settings.sh 来配置编译环境
+2. 新建一个文件夹如：EBAZ4205，将vivado下导出的xxx.sdk文件夹拷贝到该目录下
+3. 创建Petalinux工程
+   创建一个名为zynq_linux的工程：`petalinux-create -t project --template zynq -n zynq_linux` 
+4. 配置petalinux工程
+   根据vivado导出的hdf文件配置工程
+    `cd zynq_linux`
+    `petalinux-config --get-hw-description ../EBAZ4205.sdk/`
 
 #### 特技
 
