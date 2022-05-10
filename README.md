@@ -42,7 +42,7 @@ EBAZ4205Linux移植笔记
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E5%A4%96%E8%AE%BE%E9%85%8D%E7%BD%AE2.png)
 
 ##### 2.IO配置
-
+ 
 ![输入图片说明](%E6%8F%92%E5%9B%BE/IO%E9%85%8D%E7%BD%AE1.png)
 
 ![输入图片说明](%E6%8F%92%E5%9B%BE/IO%E9%85%8D%E7%BD%AE2.png)
