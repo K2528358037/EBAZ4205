@@ -61,9 +61,8 @@ EBAZ4205Linux移植笔记
 
 ![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%BC%96%E8%AF%91%E5%AF%BC%E5%87%BAbit3.png)
 
-#### 参与贡献
-
-1.  Fork 本仓库
+#### 移植linux
+采用Ubuntu16安装的Petalinux2018.3
 2.  新建 Feat_xxx 分支
 3.  提交代码
 4.  新建 Pull Request
