@@ -74,14 +74,48 @@ EBAZ4205Linux移植笔记
 采用Ubuntu16安装的Petalinux2018.3，移植过程主要参考了正点原子的教程
 
 1. 打开Linux终端，运行安装目录下的 settings.sh 来配置编译环境
+
 2. 新建一个文件夹如：EBAZ4205，将vivado下导出的xxx.sdk文件夹拷贝到该目录下
+
 3. 创建Petalinux工程
+
    创建一个名为zynq_linux的工程：`petalinux-create -t project --template zynq -n zynq_linux` 
+
 4. 配置petalinux工程
+
    根据vivado导出的hdf文件配置工程
+
     `cd zynq_linux`
+
     `petalinux-config --get-hw-description ../EBAZ4205.sdk/`
 
+    需要修改以下几项配置
+    
+    ![输入图片说明](%E6%8F%92%E5%9B%BE/config.png)
+
+    串口配置
+
+    进入 Subsystem AUTO Hardware Settings  --->  选择 Serial Settings  --->  我将UART0作为调试串口，配置如下：
+
+    ![输入图片说明](%E6%8F%92%E5%9B%BE/%E4%B8%B2%E5%8F%A3%E9%85%8D%E7%BD%AE.png)
+
+    配置Uboot、kernel为SD卡镜像
+    ![输入图片说明](%E6%8F%92%E5%9B%BE/imagestorage.png)
+   
+    配置uboot 
+
+    进入  u-boot Configuration  --->  此处修改为0x8000000
+    ![输入图片说明](%E6%8F%92%E5%9B%BE/ubootconfig.png)
+
+    配置rootfs为SD卡镜像
+
+    进入 Image Packaging Configuration  ---> 
+    ![输入图片说明](%E6%8F%92%E5%9B%BE/rootfstype.png)
+
+    配置自动登录
+
+    进入 Yocto Settings  --->
+    ![输入图片说明](%E6%8F%92%E5%9B%BE/%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%95.png)
 #### 特技
 
 
