@@ -2,7 +2,7 @@
 
 板子为闲鱼购买“超级大电工”的板子，并带有扩展板，大佬附带有板子的使用资料和教程，链接：[你好，FPGA](http://www.hellofpga.com/)
 
-![盗图一张 :smirk: ](%E5%AE%9E%E7%89%A9%E5%9B%BE.jpg)
+![输入图片说明](%E6%8F%92%E5%9B%BE/%E5%AE%9E%E7%89%A9%E5%9B%BE.jpg)
 
 #### 介绍
 EBAZ4205Linux移植笔记
@@ -269,7 +269,7 @@ EBAZ4205Linux移植笔记
 
 4.将 ./images/linux/ 下的BOOT.bin和image.ub这两个文件拷贝到boot分区中，将 ./images/linux/下的rootfs.tar.gz 解压到rootfs分区中，弹出SD卡插入板子的SD卡座上电，通过调试串口可登入linux终端
 
-![输入图片说明](linux%E5%90%AF%E5%8A%A8.png)
+![输入图片说明](%E6%8F%92%E5%9B%BE/linux%E5%90%AF%E5%8A%A8.png)
 
 #### 利用FrameBuffer驱动LCD屏幕
 
