@@ -1,6 +1,7 @@
 # EBAZ4205学习笔记
 
 板子为闲鱼购买“超级大电工”的板子，并带有扩展板，大佬附带有板子的使用资料和教程，链接：[你好，FPGA](http://www.hellofpga.com/)
+
 ![实物图](https://user-images.githubusercontent.com/57591350/189866873-8c69c887-04fa-4c0e-88aa-318ac6fb740d.jpg)
 
 
@@ -42,33 +43,34 @@ EBAZ4205Linux移植笔记
 
 ##### 2.IO配置
  
-![输入图片说明](%E6%8F%92%E5%9B%BE/IO%E9%85%8D%E7%BD%AE1.png)
+![IO配置1](https://user-images.githubusercontent.com/57591350/189867228-2ae30522-4084-4af2-964a-982f2b7a6a34.png)
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/IO%E9%85%8D%E7%BD%AE2.png)
+![IO配置2](https://user-images.githubusercontent.com/57591350/189867247-183e214d-9c80-4f1f-b391-5169bd0b1740.png)
+
 
 ##### 3.管脚约束
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%AE%A1%E8%84%9A%E7%BA%A6%E6%9D%9F1.png)
+![管脚约束1](https://user-images.githubusercontent.com/57591350/189867412-35778abc-0b34-4287-95ef-84dd30cac1a2.png)
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%AE%A1%E8%84%9A%E7%BA%A6%E6%9D%9F2.png)
+![管脚约束1](https://user-images.githubusercontent.com/57591350/189867339-c80a92f1-80ea-401e-9d7d-1f9e088eed20.png)
 
 ##### 4.连线
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/EBAZ4205%E5%B7%A5%E7%A8%8B%E9%85%8D%E7%BD%AE.png)
+![EBAZ4205工程配置](https://user-images.githubusercontent.com/57591350/189867783-d888b40b-96e0-4251-9183-aa4ac708521a.png)
 
 ##### 5.导出HDF文件
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E5%AF%BC%E5%87%BA%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6.png)
+![导出配置文件](https://user-images.githubusercontent.com/57591350/189867729-f3ee3d67-af4b-441c-8b0e-3278b40fa42f.png)
 
 ##### 6.导出bit文件
 
 先编译工程，编译完成后导出bit文件
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%BC%96%E8%AF%91%E5%AF%BC%E5%87%BAbit.png)
+![编译导出bit2](https://user-images.githubusercontent.com/57591350/189868016-c40b9b2a-7574-46e0-a248-bf799335bedb.png)
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%BC%96%E8%AF%91%E5%AF%BC%E5%87%BAbit2.png)
+![编译导出bit2](https://user-images.githubusercontent.com/57591350/189868050-86d58a3f-7e69-410a-8316-45d33c6c5e9f.png)
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E7%BC%96%E8%AF%91%E5%AF%BC%E5%87%BAbit3.png)
+![编译导出bit3](https://user-images.githubusercontent.com/57591350/189868089-457d7ff6-348c-4012-b89a-da04d79ff0b4.png)
 
 #### 移植linux
 采用Ubuntu16安装的Petalinux2018.3，移植过程主要参考了正点原子的教程
