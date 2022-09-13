@@ -1,9 +1,8 @@
 # EBAZ4205学习笔记
 
 板子为闲鱼购买“超级大电工”的板子，并带有扩展板，大佬附带有板子的使用资料和教程，链接：[你好，FPGA](http://www.hellofpga.com/)
-![DDR配置](https://user-images.githubusercontent.com/57591350/189866534-d1b692e7-a285-4487-a10b-f391d2efeef5.png)
+![实物图](https://user-images.githubusercontent.com/57591350/189866873-8c69c887-04fa-4c0e-88aa-318ac6fb740d.jpg)
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E5%AE%9E%E7%89%A9%E5%9B%BE.jpg)
 
 #### 介绍
 EBAZ4205Linux移植笔记
@@ -37,9 +36,9 @@ EBAZ4205Linux移植笔记
 
 ##### 1.外设配置
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E5%A4%96%E8%AE%BE%E9%85%8D%E7%BD%AE1.png)
+![外设配置1](https://user-images.githubusercontent.com/57591350/189867087-a6ba92da-8ffd-496f-84a1-d7136a53cf43.png)
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E5%A4%96%E8%AE%BE%E9%85%8D%E7%BD%AE2.png)
+![外设配置2](https://user-images.githubusercontent.com/57591350/189867053-272dcaa0-1f41-46e3-a78c-63a507160c4c.png)
 
 ##### 2.IO配置
  
