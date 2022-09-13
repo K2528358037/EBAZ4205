@@ -93,41 +93,41 @@ EBAZ4205Linux移植笔记
 
     需要修改以下几项配置
     
-![输入图片说明](%E6%8F%92%E5%9B%BE/config.png)
+![config](https://user-images.githubusercontent.com/57591350/189868875-6b3b8f8e-2732-4029-9182-7f19973a62a5.png)
 
 ##### 串口配置
 
 进入 Subsystem AUTO Hardware Settings  --->  选择 Serial Settings  --->  我将UART0作为调试串口，配置如下：
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E4%B8%B2%E5%8F%A3%E9%85%8D%E7%BD%AE.png)
+![串口配置](https://user-images.githubusercontent.com/57591350/189869065-ef330dfa-0e62-43c8-b823-4449ea8a708b.png)
 
 ##### 配置Uboot、kernel为SD卡镜像
     
 进入 Subsystem AUTO Hardware Settings  ---> 选择  [*]   Advanced bootable images storage Settings  --->   
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/imagestorage.png)
+![imagestorage](https://user-images.githubusercontent.com/57591350/189869369-0d84b0f3-c1fd-4aad-adbe-cbba8a243c42.png)
    
 ##### 配置uboot 
 
 进入  u-boot Configuration  --->  此处修改为0x8000000
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/ubootconfig.png)
+![ubootconfig](https://user-images.githubusercontent.com/57591350/189869503-05d2d49c-0eba-4163-9cd8-e982ab3d0db9.png)
 
 ##### 配置rootfs为SD卡镜像
 
 进入 Image Packaging Configuration  ---> 
     
-![输入图片说明](%E6%8F%92%E5%9B%BE/rootfstype.png)
+![rootfstype](https://user-images.githubusercontent.com/57591350/189869168-b73e5ecf-1868-45b1-b070-cb7b8522e0b4.png)
 
 ##### 配置自动登录
 
 进入 Yocto Settings  --->
     
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E8%87%AA%E5%8A%A8%E7%99%BB%E5%BD%95.png)
+![自动登录](https://user-images.githubusercontent.com/57591350/189869711-c62ef55f-59c1-4449-a415-24b282a2c9ab.png)
 
 配置完成后，移动光标至`save`按回车进行保存，双击键盘上的`ESC`一步步退出终端，等待工程配置完成
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/%E4%BF%9D%E5%AD%98%E9%80%80%E5%87%BA.png)
+![保存退出](https://user-images.githubusercontent.com/57591350/189869773-a03494ff-624b-4537-a489-f6127e30360e.png)
 
 ##### 修改设备树
 
@@ -271,7 +271,7 @@ EBAZ4205Linux移植笔记
 
 4.将 ./images/linux/ 下的BOOT.bin和image.ub这两个文件拷贝到boot分区中，将 ./images/linux/下的rootfs.tar.gz 解压到rootfs分区中，弹出SD卡插入板子的SD卡座上电，通过调试串口可登入linux终端
 
-![输入图片说明](%E6%8F%92%E5%9B%BE/linux%E5%90%AF%E5%8A%A8.png)
+![linux启动](https://user-images.githubusercontent.com/57591350/189869956-f67d68e0-6fb6-40c7-bfc6-0b5f15ec9e53.png)
 
 #### 利用FrameBuffer驱动LCD屏幕
 
