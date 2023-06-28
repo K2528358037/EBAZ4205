@@ -1,4 +1,4 @@
-# EBAZ4205学习笔记
+![1687919310699](https://github.com/K2528358037/EBAZ4205/assets/57591350/504f2fe0-0342-4340-af1b-66216d20a1a1)# EBAZ4205学习笔记
 
 板子为闲鱼购买“超级大电工”的板子，并带有扩展板，大佬附带有板子的使用资料和教程，链接：[你好，FPGA](http://www.hellofpga.com/)
 
@@ -51,8 +51,9 @@ EBAZ4205Linux移植笔记
 ##### 3.管脚约束
 
 ![管脚约束1](https://user-images.githubusercontent.com/57591350/189867412-35778abc-0b34-4287-95ef-84dd30cac1a2.png)
+![管脚约束1](https://github.com/K2528358037/EBAZ4205/assets/57591350/16c23bea-ad07-4842-8efe-08991ba87af3)
 
-![管脚约束1](https://user-images.githubusercontent.com/57591350/189867339-c80a92f1-80ea-401e-9d7d-1f9e088eed20.png)
+
 
 ##### 4.连线
 
